@@ -2,66 +2,258 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ambo University — Engineering Web Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduPortal – Student & Instructor Management System</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="stylesheet" href="css/main.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 </head>
-<body class="auth-page">
+<body>
 
-  <div class="auth-split">
-    <div class="auth-brand">
-      <div>
-        <img src="logo.png" alt="AU" style="height:100px; margin-bottom:1rem;" onerror="this.style.display='none';" />
-        <h2>Ambo University</h2>
-        <p class="brand-dept">Faculty of Engineering & Technology</p>
-        <div class="brand-divider"></div>
-        <p style="opacity:0.85;">Civil Engineering Department Matrix Core</p>
+  <!-- ===== SPLASH / LANDING ===== -->
+  <div id="app-root">
+
+    <div id="landing-page" class="page active">
+      <div class="landing-bg">
+        <div class="grid-lines"></div>
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+      </div>
+      <nav class="top-nav">
+        <div class="nav-brand">
+          <span class="brand-icon">⬡</span>
+          <span class="brand-name">EduPortal</span>
+        </div>
+        <div class="nav-tag">Civil Engineering Dept.</div>
+      </nav>
+      <main class="landing-main">
+        <div class="landing-badge">Academic Management System</div>
+        <h1 class="landing-title">
+          Learn.<br/>
+          <span class="accent">Track.</span><br/>
+          Succeed.
+        </h1>
+        <p class="landing-sub">
+          A unified portal for students and instructors at the Civil Engineering Department.
+          Register, view marks, take tests, download notes — all in one place.
+        </p>
+        <div class="landing-actions">
+          <button class="btn-primary" onclick="showPage('student-auth')">
+            Student Portal
+            <span class="btn-arrow">→</span>
+          </button>
+          <button class="btn-secondary" onclick="showPage('instructor-auth')">
+            Instructor Login
+          </button>
+        </div>
+        <div class="landing-stats">
+          <div class="stat"><span class="stat-num">2</span><span class="stat-label">Courses</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">∞</span><span class="stat-label">Resources</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat"><span class="stat-num">24/7</span><span class="stat-label">Access</span></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ===== STUDENT AUTH PAGE ===== -->
+    <div id="student-auth" class="page">
+      <div class="auth-bg"></div>
+      <div class="auth-container">
+        <button class="back-btn" onclick="showPage('landing-page')">← Back</button>
+        <div class="auth-card">
+          <div class="auth-logo">⬡ EduPortal</div>
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login', this)">Login</button>
+            <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register', this)">Register</button>
+          </div>
+
+          <!-- LOGIN FORM -->
+          <div id="student-login-form" class="auth-form active">
+            <h2 class="form-title">Welcome back</h2>
+            <p class="form-sub">Sign in to your student account</p>
+            <div class="field-group">
+              <label>Student ID</label>
+              <input type="text" id="login-id" placeholder="e.g. ETS/0001/15" class="field-input"/>
+            </div>
+            <div class="field-group">
+              <label>Password</label>
+              <input type="password" id="login-password" placeholder="Your password" class="field-input"/>
+            </div>
+            <div id="login-error" class="form-error hidden"></div>
+            <button class="btn-full" onclick="studentLogin()">
+              <span id="login-btn-text">Sign In</span>
+            </button>
+          </div>
+
+          <!-- REGISTER FORM -->
+          <div id="student-register-form" class="auth-form">
+            <h2 class="form-title">Create account</h2>
+            <p class="form-sub">Register with your authorized ID</p>
+            <div class="field-group">
+              <label>Authorized Student ID</label>
+              <input type="text" id="reg-id" placeholder="e.g. ETS/0001/15" class="field-input"/>
+            </div>
+            <div class="field-group">
+              <label>Full Name</label>
+              <input type="text" id="reg-name" placeholder="Your full name" class="field-input"/>
+            </div>
+            <div class="field-group">
+              <label>Telegram Username</label>
+              <input type="text" id="reg-telegram" placeholder="@yourusername" class="field-input"/>
+            </div>
+            <div class="field-group">
+              <label>Password</label>
+              <input type="password" id="reg-password" placeholder="Create a password" class="field-input"/>
+            </div>
+            <div class="field-group">
+              <label>Confirm Password</label>
+              <input type="password" id="reg-confirm" placeholder="Repeat password" class="field-input"/>
+            </div>
+            <div id="reg-error" class="form-error hidden"></div>
+            <div id="reg-success" class="form-success hidden"></div>
+            <button class="btn-full" onclick="studentRegister()">
+              <span id="reg-btn-text">Register</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="auth-form-area">
-      <div class="auth-card">
-        <div class="auth-tabs">
-          <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
-          <button class="tab-btn" onclick="switchTab('register')">Register</button>
-        </div>
-
-        <div id="tab-login" class="tab-content active">
-          <div id="login-error" class="alert alert-error" style="display:none;"></div>
-          <div class="form-group">
-            <label>User Identifier / Student ID</label>
-            <input type="text" id="login-id" placeholder="e.g. ETS/123/15 or admin" />
+    <!-- ===== INSTRUCTOR AUTH PAGE ===== -->
+    <div id="instructor-auth" class="page">
+      <div class="auth-bg instructor-bg"></div>
+      <div class="auth-container">
+        <button class="back-btn" onclick="showPage('landing-page')">← Back</button>
+        <div class="auth-card instructor-card">
+          <div class="auth-logo">⬡ EduPortal</div>
+          <h2 class="form-title">Instructor Login</h2>
+          <p class="form-sub">Access the instructor dashboard</p>
+          <div class="field-group">
+            <label>Username</label>
+            <input type="text" id="inst-username" placeholder="Admin username" class="field-input"/>
           </div>
-          <div class="form-group">
-            <label>Security Password</label>
-            <input type="password" id="login-pwd" placeholder="••••••••" />
+          <div class="field-group">
+            <label>Password</label>
+            <input type="password" id="inst-password" placeholder="Admin password" class="field-input"/>
           </div>
-          <button class="btn-primary" onclick="doLogin()"><span id="login-btn-text">Sign In Engine</span></button>
-        </div>
-
-        <div id="tab-register" class="tab-content">
-          <div id="reg-error" class="alert alert-error" style="display:none;"></div>
-          <div id="reg-success" class="alert alert-success" style="display:none;"></div>
-          <div class="form-group">
-            <label>Pre-Authorized Student ID</label>
-            <input type="text" id="reg-id" placeholder="e.g. ETS/123/15" />
-          </div>
-          <div class="form-group">
-            <label>Full Legal Registration Name</label>
-            <input type="text" id="reg-name" placeholder="As written on legal records" />
-          </div>
-          <div class="form-group">
-            <label>Choose Framework Password</label>
-            <input type="password" id="reg-pwd" placeholder="Minimum 6 characters" />
-          </div>
-          <button class="btn-primary" onclick="doRegister()">Verify and Register</button>
+          <div id="inst-error" class="form-error hidden"></div>
+          <button class="btn-full" onclick="instructorLogin()">
+            <span>Sign In as Instructor</span>
+          </button>
         </div>
       </div>
     </div>
+
+    <!-- ===== STUDENT DASHBOARD ===== -->
+    <div id="student-dashboard" class="page dashboard-page">
+      <aside class="sidebar" id="student-sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon">⬡</span>
+          <span>EduPortal</span>
+        </div>
+        <div class="sidebar-user" id="sidebar-student-info">
+          <div class="user-avatar" id="student-avatar">S</div>
+          <div>
+            <div class="user-name" id="sidebar-student-name">Student</div>
+            <div class="user-role">Student</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="nav-item active" onclick="showStudentSection('s-overview')">
+            <span class="nav-icon">⊞</span> Overview
+          </a>
+          <a class="nav-item" onclick="showStudentSection('s-marks')">
+            <span class="nav-icon">◈</span> My Marks
+          </a>
+          <a class="nav-item" onclick="showStudentSection('s-tests')">
+            <span class="nav-icon">◎</span> Online Tests
+          </a>
+          <a class="nav-item" onclick="showStudentSection('s-notes')">
+            <span class="nav-icon">◱</span> Lecture Notes
+          </a>
+          <a class="nav-item" onclick="showStudentSection('s-chatbot')">
+            <span class="nav-icon">◈</span> AI Chatbot
+          </a>
+          <a class="nav-item" onclick="showStudentSection('s-notices')">
+            <span class="nav-icon">◉</span> Notices
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">↩ Logout</button>
+        </div>
+      </aside>
+      <div class="hamburger" onclick="toggleSidebar()">☰</div>
+      <main class="dashboard-main" id="student-main">
+        <!-- Sections loaded by JS -->
+      </main>
+    </div>
+
+    <!-- ===== INSTRUCTOR DASHBOARD ===== -->
+    <div id="instructor-dashboard" class="page dashboard-page">
+      <aside class="sidebar instructor-sidebar" id="instructor-sidebar">
+        <div class="sidebar-brand">
+          <span class="brand-icon">⬡</span>
+          <span>EduPortal</span>
+        </div>
+        <div class="sidebar-user">
+          <div class="user-avatar inst-avatar">I</div>
+          <div>
+            <div class="user-name">Instructor</div>
+            <div class="user-role">Admin</div>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <a class="nav-item active" onclick="showInstructorSection('i-dashboard')">
+            <span class="nav-icon">⊞</span> Dashboard
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-marks')">
+            <span class="nav-icon">◈</span> Manage Marks
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-complaints')">
+            <span class="nav-icon">◉</span> Complaints
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-upload-exam')">
+            <span class="nav-icon">◎</span> Upload Exam
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-upload-notes')">
+            <span class="nav-icon">◱</span> Upload Notes
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-notify')">
+            <span class="nav-icon">◈</span> Send Notice
+          </a>
+          <a class="nav-item" onclick="showInstructorSection('i-students')">
+            <span class="nav-icon">◉</span> Students
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <button class="logout-btn" onclick="logout()">↩ Logout</button>
+        </div>
+      </aside>
+      <div class="hamburger" onclick="toggleSidebar()">☰</div>
+      <main class="dashboard-main" id="instructor-main">
+        <!-- Sections loaded by JS -->
+      </main>
+    </div>
+
+  </div><!-- end #app-root -->
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Loading overlay -->
+  <div id="loader" class="loader hidden">
+    <div class="loader-ring"></div>
+    <p>Loading...</p>
   </div>
 
+  <!-- Scripts -->
   <script src="js/config.js"></script>
+  <script src="js/sheets.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/student.js"></script>
+  <script src="js/instructor.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
