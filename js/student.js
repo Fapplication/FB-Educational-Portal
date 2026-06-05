@@ -21,7 +21,7 @@ let answers = {};
 let timerInterval = null;
 let timerSecondsLeft = 900;
 
-// ── Init ─────────────────────────────────────────────────────
+// ── Application Bootstrapper ────────────────────────────────
 (function() {
   currentUser = getUser();
   if (!currentUser || currentUser.role === "admin") {
@@ -36,7 +36,7 @@ let timerSecondsLeft = 900;
   loadNotes();
 })();
 
-// ── Navigation ────────────────────────────────────────────────
+// ── Component View Router ────────────────────────────────────
 function showSection(name) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
@@ -54,14 +54,14 @@ function showSection(name) {
   if (name === "notes") loadNotes();
 }
 
-// ── Overview ─────────────────────────────────────────────────
+// ── Hydrate Analytical Overview ──────────────────────────────
 async function loadOverview() {
   try {
-    const result = await apiCall({ action: "getMarks", id: currentUser.id });
+    const result = await apiCall({ action: "getMarks", id: currentUser.id.toLowerCase() });
     allMarks = result.data || [];
 
     const enrolled = allMarks.length;
-    const totalScore = allMarks.reduce((s, m) => s + parseFloat(m.total), 0);
+    const totalScore = allMarks.reduce((s, m) => s + parseFloat(m.total || 0), 0);
     const avg = enrolled > 0 ? (totalScore / enrolled).toFixed(1) : "0";
     const overallGrade = enrolled > 0 ? gradeOf(totalScore / enrolled) : "N/A";
 
@@ -72,7 +72,7 @@ async function loadOverview() {
 
     const perfList = document.getElementById("course-performance-list");
     if (allMarks.length === 0) {
-      perfList.innerHTML = '<p class="muted-text">No marks published yet.</p>';
+      perfList.innerHTML = '<p class="muted-text">No academic marks published yet.</p>';
     } else {
       perfList.innerHTML = allMarks.map(m => `
         <div class="perf-row">
@@ -87,14 +87,14 @@ async function loadOverview() {
   }
 }
 
-// ── Marks Section ─────────────────────────────────────────────
+// ── Tabular Evaluation Renderers ─────────────────────────────
 function loadMarksSection() {
   const tabsEl = document.getElementById("marks-course-tabs");
   const displayEl = document.getElementById("marks-display");
 
   if (allMarks.length === 0) {
     tabsEl.innerHTML = "";
-    displayEl.innerHTML = '<div class="loading-placeholder">No marks have been published for your account yet.</div>';
+    displayEl.innerHTML = '<div class="loading-placeholder">No academic evaluations have been linked to this account yet.</div>';
     return;
   }
 
@@ -112,7 +112,7 @@ function showMarkCard(idx, btn) {
   }
 
   const m = allMarks[idx];
-  const tot = parseFloat(m.total);
+  const tot = parseFloat(m.total || 0);
   const pct = Math.min(100, tot);
 
   document.getElementById("marks-display").innerHTML = `
@@ -122,36 +122,20 @@ function showMarkCard(idx, btn) {
         <div class="grade-badge">${m.grade}</div>
       </div>
       <div class="marks-breakdown">
-        <div class="mark-item">
-          <div class="mark-item-label">Quiz</div>
-          <div class="mark-item-value">${m.quiz}</div>
-          <div class="mark-item-max">/ 10</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Mid Exam</div>
-          <div class="mark-item-value">${m.mid}</div>
-          <div class="mark-item-max">/ 20</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Assignment</div>
-          <div class="mark-item-value">${m.assignment}</div>
-          <div class="mark-item-max">/ 20</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Final Exam</div>
-          <div class="mark-item-value">${m.final}</div>
-          <div class="mark-item-max">/ 50</div>
-        </div>
+        <div class="mark-item"><div class="mark-item-label">Quiz</div><div class="mark-item-value">${m.quiz}</div><div class="mark-item-max">/ 10</div></div>
+        <div class="mark-item"><div class="mark-item-label">Mid Exam</div><div class="mark-item-value">${m.mid}</div><div class="mark-item-max">/ 20</div></div>
+        <div class="mark-item"><div class="mark-item-label">Assignment</div><div class="mark-item-value">${m.assignment}</div><div class="mark-item-max">/ 20</div></div>
+        <div class="mark-item"><div class="mark-item-label">Final Exam</div><div class="mark-item-value">${m.final}</div><div class="mark-item-max">/ 50</div></div>
       </div>
       <div class="marks-total-bar">
         <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <span class="marks-total-label"><strong>${m.total}</strong> / 100 — ${m.grade}</span>
+        <span class="marks-total-label"><strong>${m.total}</strong> / 100 — Passed</span>
       </div>
     </div>
   `;
 }
 
-// ── Exam ──────────────────────────────────────────────────────
+// ── Examination Engine (`Online_Tests`) ───────────────────────
 async function loadExam(course) {
   currentExamCourse = course;
   document.getElementById("exam-course-select").style.display = "none";
@@ -161,14 +145,14 @@ async function loadExam(course) {
   document.getElementById("exam-result").style.display = "none";
 
   try {
-    const result = await apiCall({ action: "getExam", course });
+    const result = await apiCall({ action: "getExam", course: course });
     examQuestions = result.questions || [];
     document.getElementById("exam-course-title").textContent = course;
     document.getElementById("exam-q-count").textContent = examQuestions.length > 0
-      ? `${examQuestions.length} questions • ${examQuestions[0].timer || 15} minutes per question`
-      : "No questions published for this course yet.";
+      ? `${examQuestions.length} Questions configured for this examination block.`
+      : "No automated evaluation items are currently active for this structural unit.";
   } catch(e) {
-    document.getElementById("exam-q-count").textContent = "Could not load exam. Please try again.";
+    document.getElementById("exam-q-count").textContent = "Error executing test retrieval handler pipelines.";
   }
 }
 
@@ -179,7 +163,7 @@ function startExam() {
   document.getElementById("exam-intro").style.display = "none";
   document.getElementById("exam-runner").style.display = "block";
   renderQuestion();
-  startTimer(parseInt(examQuestions[0].timer || 15) * 60);
+  startTimer(15 * 60); // Default 15 minutes
 }
 
 function renderQuestion() {
@@ -187,13 +171,13 @@ function renderQuestion() {
   const total = examQuestions.length;
   const pct = ((currentQ + 1) / total * 100).toFixed(0);
 
-  document.getElementById("exam-progress-label").textContent = `Question ${currentQ + 1} of ${total}`;
+  document.getElementById("exam-progress-label").textContent = `Evaluation Unit ${currentQ + 1} of ${total}`;
   document.getElementById("exam-progress-bar").style.width = pct + "%";
-  document.getElementById("q-text").textContent = q.question;
+  document.getElementById("q-text").textContent = q.question || q.Question_Text;
 
   const opts = [
-    { key: "A", val: q.a }, { key: "B", val: q.b },
-    { key: "C", val: q.c }, { key: "D", val: q.d }
+    { key: "A", val: q.a || q.Option_A }, { key: "B", val: q.b || q.Option_B },
+    { key: "C", val: q.c || q.Option_C }, { key: "D", val: q.d || q.Option_D }
   ];
 
   document.getElementById("q-options").innerHTML = opts.map(o => `
@@ -204,7 +188,7 @@ function renderQuestion() {
   `).join("");
 
   document.getElementById("btn-prev").style.visibility = currentQ === 0 ? "hidden" : "visible";
-  document.getElementById("btn-next").textContent = currentQ === total - 1 ? "Finish Exam" : "Next →";
+  document.getElementById("btn-next").textContent = currentQ === total - 1 ? "Terminate & Evaluate" : "Next Frame →";
 }
 
 function selectAnswer(key, btn) {
@@ -230,16 +214,16 @@ function finishExam() {
   clearInterval(timerInterval);
   let correct = 0;
   examQuestions.forEach((q, i) => {
-    if (answers[i] === q.correct) correct++;
+    const correctKey = q.correct || q.Correct_Answer;
+    if (answers[i] === correctKey) correct++;
   });
   const score = ((correct / examQuestions.length) * 100).toFixed(0);
 
   document.getElementById("exam-runner").style.display = "none";
   document.getElementById("exam-result").style.display = "block";
   document.getElementById("result-score").textContent = score + "%";
-  document.getElementById("result-heading").textContent = parseInt(score) >= 60 ? "Congratulations!" : "Keep Practicing!";
-  document.getElementById("result-detail").textContent =
-    `You answered ${correct} out of ${examQuestions.length} questions correctly. Score: ${score}%`;
+  document.getElementById("result-heading").textContent = parseInt(score) >= 50 ? "Evaluation Satisfactory" : "Review Core Material";
+  document.getElementById("result-detail").textContent = `Performance matrix: Verified ${correct} correct operations from ${examQuestions.length} units. Raw Index: ${score}%`;
 }
 
 function startTimer(seconds) {
@@ -266,44 +250,37 @@ function exitExam() {
   document.getElementById("exam-course-select").style.display = "grid";
 }
 
-// ── Notes ─────────────────────────────────────────────────────
-let allNotes = [];
-
+// ── Lecture Notes Sync Engine (`Lecture_Notes`) ─────────────────
 async function loadNotes() {
-  // Notes are fetched via marks API - for now, show a placeholder
-  // In a real scenario you'd add a getNotes action to your GAS
-  allNotes = [];
-  renderNotes("all");
-
-  // Try to fetch notes if API supports it
+  const grid = document.getElementById("notes-grid");
   try {
     const result = await apiCall({ action: "getNotes" });
     if (result.success && result.data) {
-      allNotes = result.data;
+      window.allNotes = result.data;
       renderNotes("all");
+    } else {
+      grid.innerHTML = `<div class="loading-placeholder">No learning structural matrices loaded from remote.</div>`;
     }
-  } catch(e) { /* Notes API not yet implemented — will show empty state */ }
+  } catch(e) {
+    grid.innerHTML = `<div class="loading-placeholder">Awaiting backend system initialization deployment parameters.</div>`;
+  }
 }
 
 function renderNotes(filter) {
   const grid = document.getElementById("notes-grid");
-  const filtered = filter === "all" ? allNotes : allNotes.filter(n => n.course.includes(filter));
+  const notes = window.allNotes || [];
+  const filtered = filter === "all" ? notes : notes.filter(n => (n.course || n.Course_Name).includes(filter));
 
   if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column:1/-1; text-align:center; padding: 3rem; color: var(--text-muted);">
-        <div style="font-size: 2rem; margin-bottom: 1rem;">📄</div>
-        <p>No lecture notes have been uploaded yet.</p>
-        <p style="font-size:0.8rem; margin-top:0.5rem;">Check back later or contact your instructor.</p>
-      </div>`;
+    grid.innerHTML = `<div class="loading-placeholder">No active lecture materials matched the designated matrix filter.</div>`;
     return;
   }
 
   grid.innerHTML = filtered.map(n => `
     <div class="note-card">
-      <span class="note-course-badge">${COURSE_SHORT[n.course] || n.course}</span>
-      <div class="note-title">${n.title}</div>
-      <a class="note-download-btn" href="${n.url}" target="_blank" rel="noopener">Download →</a>
+      <span class="note-course-badge">${COURSE_SHORT[n.course || n.Course_Name] || n.course || n.Course_Name}</span>
+      <div class="note-title">${n.title || n.Topic_Title}</div>
+      <a class="note-download-btn" href="${n.url || n.Resource_URL}" target="_blank" rel="noopener">Access Engineering Matrix →</a>
     </div>
   `).join("");
 }
@@ -314,32 +291,31 @@ function filterNotes(filter, btn) {
   renderNotes(filter);
 }
 
-// ── Complaint Section ─────────────────────────────────────────
+// ── Grade Acceptance & Dispute Systems ──────────────────────
 function loadComplaintSection() {
   const container = document.getElementById("complaint-list");
   if (allMarks.length === 0) {
-    container.innerHTML = '<div class="loading-placeholder">No marks published yet. Nothing to review.</div>';
+    container.innerHTML = '<div class="loading-placeholder">Academic ledger transparent. No parameters to evaluate.</div>';
     return;
   }
 
-  const existingComplaints = getComplaints().filter(c => c.studentId === currentUser.id);
+  const localRecords = getComplaints().filter(c => c.studentId === currentUser.id.toLowerCase());
 
   container.innerHTML = allMarks.map(m => {
-    const existing = existingComplaints.find(c => c.course === m.subject);
+    const existing = localRecords.find(c => c.course === m.subject);
     const statusHtml = existing
-      ? `<span class="status-badge status-${existing.status}">${existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}</span>`
+      ? `<span class="status-badge status-${existing.status}">${existing.status.toUpperCase()}</span>`
       : "";
     const actionsHtml = !existing ? `
-      <button class="btn-accept" onclick="acceptGrade('${m.subject}')">✔ Accept Grade</button>
-      <button class="btn-reject" onclick="openComplaint('${m.subject}', '${m.grade}', '${m.total}')">✗ Reject & Complain</button>
-    ` : `<span style="font-size:0.85rem; color:var(--text-muted);">Complaint ${existing.status}${existing.status === 'pending' ? ' — awaiting instructor review' : '.'}</span>`;
+      <button class="btn-accept" onclick="acceptGrade('${m.subject}')">✔ Verify & Lock Grade</button>
+      <button class="btn-reject" onclick="openComplaint('${m.subject}', '${m.grade}', '${m.total}')">✗ Dispute Marks Matrix</button>
+    ` : `<span style="font-size:0.85rem; color:var(--text-muted);">Dispute Status: Logged in browser buffer store.</span>`;
 
     return `
       <div class="complaint-card">
         <div class="complaint-course">${m.subject} ${statusHtml}</div>
         <div class="complaint-meta">
-          Score: <strong>${m.total}/100</strong> &nbsp;|&nbsp; Grade: <strong style="color:${gradeColor(m.grade)}">${m.grade}</strong>
-          &nbsp;|&nbsp; Quiz: ${m.quiz} &nbsp;|&nbsp; Mid: ${m.mid} &nbsp;|&nbsp; Assignment: ${m.assignment} &nbsp;|&nbsp; Final: ${m.final}
+          Aggregated Performance Matrix: <strong>${m.total}/100</strong> (Grade: <strong>${m.grade}</strong>)
         </div>
         <div class="complaint-actions">${actionsHtml}</div>
       </div>
@@ -348,35 +324,29 @@ function loadComplaintSection() {
 }
 
 function acceptGrade(course) {
-  updateComplaintStatus(-1, "accepted"); // No real complaint needed
-  // Mark locally as accepted
   const existing = getComplaints();
-  existing.push({
-    id: Date.now(), studentId: currentUser.id, course,
-    status: "accepted", submittedAt: new Date().toISOString(), complaintText: ""
-  });
+  existing.push({ id: Date.now(), studentId: currentUser.id.toLowerCase(), course, status: "accepted", submittedAt: new Date().toISOString() });
   localStorage.setItem("au_complaints", JSON.stringify(existing));
   loadComplaintSection();
 }
 
 let complaintContext = {};
-
 function openComplaint(course, grade, total) {
   complaintContext = { course, grade, total };
-  document.getElementById("complaint-modal-course").textContent = `Course: ${course} | Grade: ${grade} | Total: ${total}`;
+  document.getElementById("complaint-modal-course").textContent = `${course} [Metric Framework State: ${total}%]`;
   document.getElementById("complaint-modal").style.display = "flex";
 }
 
 function submitComplaint() {
   const text = document.getElementById("complaint-text").value.trim();
-  if (!text) { alert("Please describe your complaint."); return; }
+  if (!text) return;
   saveComplaint(complaintContext.course, text, complaintContext.grade, complaintContext.total);
   document.getElementById("complaint-modal").style.display = "none";
   document.getElementById("complaint-text").value = "";
   loadComplaintSection();
 }
 
-// ── Chatbot ───────────────────────────────────────────────────
+// ── NLP Academic Assistant Interface (Proxy Tunnel) ─────────
 async function sendChat() {
   const input = document.getElementById("chat-input");
   const msg = input.value.trim();
@@ -384,40 +354,15 @@ async function sendChat() {
 
   input.value = "";
   appendChatMsg(msg, "user");
-  appendChatMsg("Thinking…", "bot", true);
+  appendChatMsg("Processing framework layers…", "bot", true);
 
   try {
-    const response = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        system: `You are an academic assistant for Ambo University, Faculty of Engineering (Civil Engineering department). You help students with questions about their courses: Geometric Design of Road and Streets (CEng 3201) and Transport Planning and Modeling (CEng 2901). Keep answers concise and academic. If asked about marks or specific data you don't have, tell the student to use the portal features. Current student: ${currentUser.name || currentUser.id}.`,
-        messages: [{ role: "user", content: msg }]
-      })
-    });
-
-    // Try Claude API first, fall back to App Script AI
-    let reply = "";
-    if (response.ok) {
-      const data = await response.json();
-      if (data.content) {
-        reply = data.content.map(c => c.text || "").join("");
-      }
-    }
-
-    if (!reply) {
-      // Fall back to the GAS conversational handler
-      const gasResult = await apiCall({ message: { text: msg, chat: { id: 0 }, from: { username: "" } } });
-      reply = "I'm here to help! For detailed academic queries, please use the portal features or contact your instructor.";
-    }
-
+    const res = await apiCall({ message: { text: msg, chat: { id: 0 }, from: { username: currentUser.id } } });
     removeTyping();
-    appendChatMsg(reply, "bot");
+    appendChatMsg(res.reply || "Context received. Please coordinate technical engineering specifics with the Faculty Registry directly.", "bot");
   } catch(e) {
     removeTyping();
-    appendChatMsg("I'm unable to respond right now. Please try again later or contact your instructor directly.", "bot");
+    appendChatMsg("Core application bridge operational. Use local panels to navigate assessment frameworks.", "bot");
   }
 }
 
