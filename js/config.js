@@ -1,17 +1,15 @@
 // ============================================================
-// AMBO UNIVERSITY PORTAL — Configuration
-// ============================================================
-// IMPORTANT: Replace the API_URL below with your deployed
-// Google Apps Script Web App URL after deployment.
+// AMBO UNIVERSITY PORTAL — Configuration & Shared Utilities
 // ============================================================
 
 const CONFIG = {
+  // Your deployed Google Apps Script Web App URL
   API_URL: "https://script.google.com/macros/s/AKfycbxag3kbACfwOiA7zc4pEHY-euD0lZ9E2sv0RmzAqWxajxzw2xPzPE5ZPTdDcJPhkPrT/exec",
   ADMIN_ID: "admin",
   ADMIN_PASSWORD: "admin123"
 };
 
-// ── Shared API caller ────────────────────────────────────────
+// ── Shared Fetch API Caller ─────────────────────────────────
 async function apiCall(payload) {
   const res = await fetch(CONFIG.API_URL, {
     method: "POST",
@@ -21,7 +19,7 @@ async function apiCall(payload) {
   return await res.json();
 }
 
-// ── Session helpers ──────────────────────────────────────────
+// ── Session state managers ──────────────────────────────────
 function saveUser(data) {
   sessionStorage.setItem("au_user", JSON.stringify(data));
 }
@@ -35,7 +33,7 @@ function clearUser() {
   sessionStorage.removeItem("au_user");
 }
 
-// ── Grade helper ─────────────────────────────────────────────
+// ── Academic Performance Helpers ─────────────────────────────
 function gradeOf(total) {
   if (total >= 90) return "A";
   if (total >= 80) return "B";
@@ -49,7 +47,7 @@ function gradeColor(grade) {
   return map[grade] || "#4A5568";
 }
 
-// ── Complaint storage (local — no backend change needed) ─────
+// ── Local Storage for Client States ─────────────────────────
 function saveComplaint(courseId, text, grade, total) {
   const existing = getComplaints();
   const user = getUser();
@@ -74,10 +72,12 @@ function getComplaints() {
 function updateComplaintStatus(id, status) {
   const all = getComplaints();
   const idx = all.findIndex(c => c.id === id);
-  if (idx !== -1) { all[idx].status = status; localStorage.setItem("au_complaints", JSON.stringify(all)); }
+  if (idx !== -1) { 
+    all[idx].status = status; 
+    localStorage.setItem("au_complaints", JSON.stringify(all)); 
+  }
 }
 
-// ── Notification store ────────────────────────────────────────
 function saveNotification(title, body, course) {
   const existing = getNotifications();
   existing.unshift({ id: Date.now(), title, body, course, sentAt: new Date().toISOString() });
@@ -89,24 +89,21 @@ function getNotifications() {
   catch(e) { return []; }
 }
 
-// ── Toggle sidebar (mobile) ──────────────────────────────────
+// ── Dynamic UI Interactivity Helpers ────────────────────────
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
 }
 
-// ── Toggle password visibility ───────────────────────────────
 function togglePwd(inputId, btn) {
   const input = document.getElementById(inputId);
   if (input.type === "password") { input.type = "text"; btn.textContent = "🙈"; }
   else { input.type = "password"; btn.textContent = "👁"; }
 }
 
-// ── Generic modal close ──────────────────────────────────────
 function closeModal(id) {
   document.getElementById(id).style.display = "none";
 }
 
-// ── doLogout ─────────────────────────────────────────────────
 function doLogout() {
   clearUser();
   window.location.href = isInPages() ? "../index.html" : "index.html";
