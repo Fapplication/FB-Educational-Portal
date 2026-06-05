@@ -10,7 +10,7 @@ const CONFIG = {
   // 2. Deploy as Web App via Apps Script (see README)
   // 3. Paste your deployment URL below
 
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxag3kbACfwOiA7zc4pEHY-euD0lZ9E2sv0RmzAqWxajxzw2xPzPE5ZPTdDcJPhkPrT/exec)",
   // ^ Replace YOUR_DEPLOYMENT_ID with your actual Apps Script Web App URL
 
   SPREADSHEET_ID: "YOUR_SPREADSHEET_ID",
