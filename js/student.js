@@ -1,437 +1,575 @@
 // ============================================================
-// AMBO UNIVERSITY PORTAL — Student Dashboard Logic
+//  js/student.js  –  Student Dashboard Logic
 // ============================================================
 
-const COURSES = [
-  "Geometric Design of Road and Streets (CEng 3201)",
-  "Transport Planning and Modeling (CEng 2901)"
-];
+let _studentData = null;
+let _quizState   = null;
 
-const COURSE_SHORT = {
-  "Geometric Design of Road and Streets (CEng 3201)": "CEng 3201",
-  "Transport Planning and Modeling (CEng 2901)": "CEng 2901"
-};
-
-let currentUser = null;
-let allMarks = [];
-let currentExamCourse = "";
-let examQuestions = [];
-let currentQ = 0;
-let answers = {};
-let timerInterval = null;
-let timerSecondsLeft = 900;
-
-// ── Init ─────────────────────────────────────────────────────
-(function() {
-  currentUser = getUser();
-  if (!currentUser || currentUser.role === "admin") {
-    window.location.href = "../index.html";
-    return;
-  }
-  document.getElementById("sidebar-name").textContent = currentUser.name || currentUser.id;
-  document.getElementById("topbar-name").textContent = currentUser.name || currentUser.id;
-  const initials = (currentUser.name || "ST").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-  document.getElementById("user-avatar").textContent = initials;
-  loadOverview();
-  loadNotes();
-})();
-
-// ── Navigation ────────────────────────────────────────────────
-function showSection(name) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  document.getElementById("section-" + name).classList.add("active");
-  document.querySelectorAll(".nav-item").forEach(n => {
-    if (n.getAttribute("onclick") && n.getAttribute("onclick").includes("'" + name + "'")) n.classList.add("active");
-  });
-  document.getElementById("page-title").textContent = {
-    overview: "Dashboard", marks: "My Marks", exam: "Online Exam",
-    notes: "Lecture Notes", complaint: "Grade Complaint", chatbot: "AI Assistant"
-  }[name] || "Dashboard";
-
-  if (name === "marks") loadMarksSection();
-  if (name === "complaint") loadComplaintSection();
-  if (name === "notes") loadNotes();
+// ── INIT ────────────────────────────────────────────────────
+function initStudentDashboard(user) {
+  _studentData = user;
+  const nameEl = document.getElementById("sidebar-student-name");
+  const avatarEl = document.getElementById("student-avatar");
+  if (nameEl)   nameEl.textContent = user.name.split(" ")[0];
+  if (avatarEl) avatarEl.textContent = user.name[0].toUpperCase();
+  showStudentSection("s-overview");
 }
 
-// ── Overview ─────────────────────────────────────────────────
-async function loadOverview() {
+// ── SECTION ROUTER ─────────────────────────────────────────
+function showStudentSection(section) {
+  document.querySelectorAll("#student-sidebar .nav-item").forEach(n => n.classList.remove("active"));
+  const map = { "s-overview":0, "s-marks":1, "s-tests":2, "s-notes":3, "s-chatbot":4, "s-notices":5 };
+  const items = document.querySelectorAll("#student-sidebar .nav-item");
+  if (items[map[section]]) items[map[section]].classList.add("active");
+
+  const main = document.getElementById("student-main");
+  main.innerHTML = "";
+
+  switch (section) {
+    case "s-overview": renderStudentOverview(main); break;
+    case "s-marks":    renderStudentMarks(main);    break;
+    case "s-tests":    renderStudentTests(main);    break;
+    case "s-notes":    renderStudentNotes(main);    break;
+    case "s-chatbot":  renderStudentChatbot(main);  break;
+    case "s-notices":  renderStudentNotices(main);  break;
+  }
+}
+
+// ── OVERVIEW ───────────────────────────────────────────────
+function renderStudentOverview(main) {
+  const u = _studentData;
+  main.innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">Dashboard</div>
+        <div class="section-sub">Welcome to your student portal</div>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="overview-welcome">
+        <div class="welcome-name">Hello, ${escHtml(u.name)} 👋</div>
+        <div class="welcome-sub">Student ID: <span style="font-family:var(--mono);color:var(--accent)">${escHtml(u.id)}</span></div>
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-accent" onclick="showStudentSection('s-marks')">View Marks</button>
+          <button class="btn btn-outline" onclick="showStudentSection('s-tests')">Take Test</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Quick Links</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${quickLink("◈", "My Marks",       "showStudentSection('s-marks')")}
+          ${quickLink("◎", "Online Tests",    "showStudentSection('s-tests')")}
+          ${quickLink("◱", "Lecture Notes",   "showStudentSection('s-notes')")}
+          ${quickLink("◉", "Notices",         "showStudentSection('s-notices')")}
+          ${quickLink("◈", "AI Chatbot",      "showStudentSection('s-chatbot')")}
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-top:20px">
+      ${CONFIG.COURSES.map(c => `
+        <div class="stat-card">
+          <div class="s-label">${escHtml(c.code)}</div>
+          <div class="s-value" style="font-size:1rem;font-family:var(--font);font-weight:600;">${escHtml(c.name)}</div>
+          <div class="s-sub" style="margin-top:8px">
+            <button class="btn btn-outline btn-sm" onclick="showStudentSection('s-marks')">View Marks →</button>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function quickLink(icon, label, action) {
+  return `<button onclick="${action}" class="btn btn-outline" style="justify-content:flex-start;gap:10px;text-align:left">
+    <span>${icon}</span> ${label}
+  </button>`;
+}
+
+// ── MARKS ───────────────────────────────────────────────────
+function renderStudentMarks(main) {
+  main.innerHTML = `
+    <div class="section-header">
+      <div>
+        <div class="section-title">My Marks</div>
+        <div class="section-sub">View and respond to your academic results</div>
+      </div>
+    </div>
+    <div class="course-select-grid" id="marks-course-select">
+      ${CONFIG.COURSES.map(c => `
+        <div class="course-card" onclick="loadStudentMarks('${c.id}', this)">
+          <div class="c-code">${escHtml(c.code)}</div>
+          <div class="c-name">${escHtml(c.name)}</div>
+        </div>
+      `).join("")}
+    </div>
+    <div id="marks-content"></div>
+  `;
+}
+
+async function loadStudentMarks(courseId, el) {
+  document.querySelectorAll(".course-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+
+  const course = CONFIG.COURSES.find(c => c.id === courseId);
+  const container = document.getElementById("marks-content");
+  container.innerHTML = `<div class="card"><p style="color:var(--text-2)">Loading marks…</p></div>`;
+
   try {
-    const result = await apiCall({ action: "getMarks", id: currentUser.id });
-    allMarks = result.data || [];
-
-    const enrolled = allMarks.length;
-    const totalScore = allMarks.reduce((s, m) => s + parseFloat(m.total), 0);
-    const avg = enrolled > 0 ? (totalScore / enrolled).toFixed(1) : "0";
-    const overallGrade = enrolled > 0 ? gradeOf(totalScore / enrolled) : "N/A";
-
-    document.getElementById("stat-courses").textContent = enrolled;
-    document.getElementById("stat-avg").textContent = avg + "%";
-    document.getElementById("stat-grade").textContent = overallGrade;
-    document.getElementById("stat-status").textContent = parseFloat(avg) >= 60 ? "Passing" : "At Risk";
-
-    const perfList = document.getElementById("course-performance-list");
-    if (allMarks.length === 0) {
-      perfList.innerHTML = '<p class="muted-text">No marks published yet.</p>';
+    let marks = null;
+    if (Sheets._useMock()) {
+      const all = Sheets.MOCK.marks[courseId] || [];
+      marks = all.find(m => m.studentId === _studentData.id) || null;
     } else {
-      perfList.innerHTML = allMarks.map(m => `
-        <div class="perf-row">
-          <span class="perf-course">${COURSE_SHORT[m.subject] || m.subject}</span>
-          <span class="perf-score">${m.total}/100</span>
-          <span class="perf-grade" style="color:${gradeColor(m.grade)}">${m.grade}</span>
-        </div>
-      `).join("");
+      marks = await Sheets.getStudentMarks(_studentData.id, course.sheetTab);
     }
-  } catch(e) {
-    document.getElementById("stat-courses").textContent = "—";
+
+    if (!marks) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No marks recorded for this course yet.</div></div>`;
+      return;
+    }
+
+    const total = (parseFloat(marks.quiz||0) + parseFloat(marks.mid||0) + parseFloat(marks.assignment||0) + parseFloat(marks.final||0));
+    const grade = calcGrade(total);
+    const maxTotal = 20 + 30 + 10 + 50; // quiz20, mid30, assign10, final50 — adjust as needed
+
+    container.innerHTML = `
+      <div class="card" style="max-width:600px">
+        <div class="card-title">${escHtml(course.code)} – ${escHtml(course.name)}</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px">
+          ${markItem("Quiz",       marks.quiz,       20)}
+          ${markItem("Mid Exam",   marks.mid,        30)}
+          ${markItem("Assignment", marks.assignment, 10)}
+          ${markItem("Final Exam", marks.final,      50)}
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-weight:600">Total Score</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--accent)">${total.toFixed(1)}</span>
+              <span class="grade-badge grade-${grade.toLowerCase()}">${grade}</span>
+            </div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:${Math.min((total/maxTotal)*100,100).toFixed(1)}%"></div>
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-accent" onclick="showComplaintForm('${courseId}','${escHtml(course.name)}',${total})">
+            Accept / Complain
+          </button>
+        </div>
+        <div id="complaint-area"></div>
+      </div>
+    `;
+  } catch (e) {
+    container.innerHTML = `<div class="card"><p style="color:var(--danger)">Error loading marks. Please try again.</p></div>`;
   }
 }
 
-// ── Marks Section ─────────────────────────────────────────────
-function loadMarksSection() {
-  const tabsEl = document.getElementById("marks-course-tabs");
-  const displayEl = document.getElementById("marks-display");
+function markItem(label, value, max) {
+  return `
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:14px">
+      <div style="font-size:0.75rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${label}</div>
+      <div style="font-size:1.4rem;font-weight:700;font-family:var(--mono);color:var(--text)">${value ?? "—"}</div>
+      <div style="font-size:0.75rem;color:var(--text-3)">out of ${max}</div>
+    </div>
+  `;
+}
 
-  if (allMarks.length === 0) {
-    tabsEl.innerHTML = "";
-    displayEl.innerHTML = '<div class="loading-placeholder">No marks have been published for your account yet.</div>';
+function calcGrade(total) {
+  if (total >= 90) return "A+";
+  if (total >= 85) return "A";
+  if (total >= 80) return "A-";
+  if (total >= 75) return "B+";
+  if (total >= 70) return "B";
+  if (total >= 65) return "B-";
+  if (total >= 60) return "C+";
+  if (total >= 50) return "C";
+  if (total >= 45) return "D";
+  return "F";
+}
+
+function showComplaintForm(courseId, courseName, currentMark) {
+  const area = document.getElementById("complaint-area");
+  area.innerHTML = `
+    <hr class="divider"/>
+    <h3 style="font-size:1rem;font-weight:600;margin-bottom:12px">Mark Review</h3>
+    <p style="font-size:0.875rem;color:var(--text-2);margin-bottom:16px">
+      Do you accept your current mark of <strong>${currentMark.toFixed(1)}</strong>, or do you want to submit a complaint?
+    </p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="btn btn-accent" onclick="submitMarkAcceptance('${courseId}','${escHtml(courseName)}',true)">
+        ✓ Accept Mark
+      </button>
+      <button class="btn btn-outline" onclick="toggleComplaintTextarea()">
+        ✎ File Complaint
+      </button>
+    </div>
+    <div id="complaint-textarea-area" class="hidden">
+      <div class="field-group">
+        <label>Complaint Subject</label>
+        <input type="text" id="complaint-subject" class="field-input" placeholder="e.g. Marking error in Final Exam"/>
+      </div>
+      <div class="field-group">
+        <label>Describe your complaint</label>
+        <textarea id="complaint-body" style="width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px 14px;font-family:var(--font);font-size:0.9rem;resize:vertical;min-height:100px;outline:none;" placeholder="Explain why you believe your mark should be reviewed..."></textarea>
+      </div>
+      <button class="btn btn-accent" onclick="submitComplaint('${courseId}','${escHtml(courseName)}',${currentMark})">
+        Submit Complaint
+      </button>
+    </div>
+    <div id="complaint-result"></div>
+  `;
+}
+
+function toggleComplaintTextarea() {
+  const el = document.getElementById("complaint-textarea-area");
+  el.classList.toggle("hidden");
+}
+
+async function submitMarkAcceptance(courseId, courseName, accepted) {
+  showToast(accepted ? "You have accepted your mark for " + courseName : "Complaint mode enabled.");
+  if (accepted) document.getElementById("complaint-area").innerHTML = `
+    <div class="form-success" style="margin-top:16px">✓ You have accepted your mark for ${escHtml(courseName)}.</div>`;
+}
+
+async function submitComplaint(courseId, courseName, currentMark) {
+  const subject = document.getElementById("complaint-subject").value.trim();
+  const body    = document.getElementById("complaint-body").value.trim();
+  if (!subject || !body) { showToast("Please fill in all fields."); return; }
+
+  const complaint = {
+    studentId:    _studentData.id,
+    studentName:  _studentData.name,
+    courseId,
+    courseName,
+    subject,
+    body,
+    currentMark,
+    date:   new Date().toISOString().split("T")[0],
+    status: "Pending",
+    response: "",
+  };
+
+  try {
+    if (Sheets._useMock()) {
+      Sheets.MOCK.complaints.push({ ...complaint, row: Sheets.MOCK.complaints.length + 2 });
+    } else {
+      await Sheets.addComplaint(complaint);
+    }
+    document.getElementById("complaint-result").innerHTML =
+      `<div class="form-success" style="margin-top:12px">✓ Complaint submitted. Your instructor will review it shortly.</div>`;
+    document.getElementById("complaint-textarea-area").classList.add("hidden");
+  } catch (e) {
+    showToast("Error submitting complaint. Please try again.");
+  }
+}
+
+// ── ONLINE TESTS ───────────────────────────────────────────
+function renderStudentTests(main) {
+  main.innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Online Tests</div>
+      <div class="section-sub">Select a course to begin</div></div>
+    </div>
+    <div class="course-select-grid">
+      ${CONFIG.COURSES.map(c => `
+        <div class="course-card" onclick="startQuiz('${c.id}')">
+          <div class="c-code">${escHtml(c.code)}</div>
+          <div class="c-name">${escHtml(c.name)}</div>
+          <div style="margin-top:12px">
+            <span class="badge badge-blue">Start Quiz →</span>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+    <div id="quiz-area"></div>
+  `;
+}
+
+async function startQuiz(courseId) {
+  const area = document.getElementById("quiz-area");
+  area.innerHTML = `<div class="card"><p style="color:var(--text-2)">Loading questions…</p></div>`;
+
+  let questions = [];
+  if (Sheets._useMock()) {
+    questions = Sheets.MOCK.questions[courseId] || [];
+  } else {
+    const course = CONFIG.COURSES.find(c => c.id === courseId);
+    questions = await Sheets.getTestQuestions(course.name);
+  }
+
+  if (!questions.length) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">No questions available for this course yet.</div></div>`;
     return;
   }
 
-  tabsEl.innerHTML = allMarks.map((m, i) =>
-    `<button class="course-tab-btn ${i === 0 ? 'active' : ''}" onclick="showMarkCard(${i}, this)">${COURSE_SHORT[m.subject] || m.subject}</button>`
-  ).join("");
-
-  showMarkCard(0, null);
+  // Shuffle
+  const qs = [...questions].sort(() => Math.random() - 0.5);
+  _quizState = { courseId, questions: qs, current: 0, score: 0, answers: [] };
+  renderQuestion(area);
 }
 
-function showMarkCard(idx, btn) {
-  if (btn) {
-    document.querySelectorAll(".course-tab-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+function renderQuestion(area) {
+  const { questions, current } = _quizState;
+  if (current >= questions.length) { renderQuizResult(area); return; }
+
+  const q = questions[current];
+  const opts = [
+    { letter: "A", text: q.optionA },
+    { letter: "B", text: q.optionB },
+    { letter: "C", text: q.optionC },
+    { letter: "D", text: q.optionD },
+  ];
+
+  area.innerHTML = `
+    <div class="quiz-card">
+      <div class="quiz-progress">
+        <div class="progress-bar-wrap" style="flex:1">
+          <div class="progress-bar-fill" style="width:${((current)/questions.length*100).toFixed(0)}%"></div>
+        </div>
+        <span class="quiz-counter">${current+1} / ${questions.length}</span>
+      </div>
+      <div class="quiz-question">${escHtml(q.questionText)}</div>
+      <div class="quiz-options">
+        ${opts.map(o => `
+          <div class="quiz-option" id="opt-${o.letter}" onclick="selectAnswer('${o.letter}', '${q.correctAnswer}')">
+            <div class="option-letter">${o.letter}</div>
+            <span>${escHtml(o.text)}</span>
+          </div>
+        `).join("")}
+      </div>
+      <div id="quiz-feedback" style="margin-top:16px"></div>
+    </div>
+  `;
+}
+
+function selectAnswer(chosen, correct) {
+  // Disable all options
+  document.querySelectorAll(".quiz-option").forEach(el => {
+    el.onclick = null;
+    el.style.cursor = "default";
+  });
+
+  const chosenEl  = document.getElementById("opt-" + chosen);
+  const correctEl = document.getElementById("opt-" + correct);
+  const feedback  = document.getElementById("quiz-feedback");
+
+  if (chosen === correct) {
+    chosenEl.classList.add("correct");
+    _quizState.score++;
+    feedback.innerHTML = `<span style="color:var(--success);font-weight:600">✓ Correct!</span>`;
+  } else {
+    chosenEl.classList.add("wrong");
+    correctEl.classList.add("correct");
+    feedback.innerHTML = `<span style="color:var(--danger);font-weight:600">✗ Incorrect.</span> <span style="color:var(--text-2)">The correct answer is <strong>${correct}</strong>.</span>`;
   }
 
-  const m = allMarks[idx];
-  const tot = parseFloat(m.total);
-  const pct = Math.min(100, tot);
+  _quizState.answers.push({ chosen, correct, isCorrect: chosen === correct });
 
-  document.getElementById("marks-display").innerHTML = `
-    <div class="marks-card">
-      <div class="marks-course-header">
-        <h3>${m.subject}</h3>
-        <div class="grade-badge">${m.grade}</div>
-      </div>
-      <div class="marks-breakdown">
-        <div class="mark-item">
-          <div class="mark-item-label">Quiz</div>
-          <div class="mark-item-value">${m.quiz}</div>
-          <div class="mark-item-max">/ 10</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Mid Exam</div>
-          <div class="mark-item-value">${m.mid}</div>
-          <div class="mark-item-max">/ 20</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Assignment</div>
-          <div class="mark-item-value">${m.assignment}</div>
-          <div class="mark-item-max">/ 20</div>
-        </div>
-        <div class="mark-item">
-          <div class="mark-item-label">Final Exam</div>
-          <div class="mark-item-value">${m.final}</div>
-          <div class="mark-item-max">/ 50</div>
-        </div>
-      </div>
-      <div class="marks-total-bar">
-        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <span class="marks-total-label"><strong>${m.total}</strong> / 100 — ${m.grade}</span>
+  setTimeout(() => {
+    _quizState.current++;
+    const area = document.getElementById("quiz-area");
+    renderQuestion(area);
+  }, 1200);
+}
+
+function renderQuizResult(area) {
+  const { score, questions } = _quizState;
+  const pct = Math.round((score / questions.length) * 100);
+  area.innerHTML = `
+    <div class="quiz-result-card">
+      <div style="font-size:2rem">🎓</div>
+      <div style="font-size:0.875rem;color:var(--text-2);margin-top:8px">Quiz Complete!</div>
+      <div class="quiz-score">${score}/${questions.length}</div>
+      <div style="font-size:0.95rem;color:var(--text-2)">${pct}% correct</div>
+      <div style="margin-top:24px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-accent" onclick="startQuiz('${_quizState.courseId}')">Retry</button>
+        <button class="btn btn-outline" onclick="showStudentSection('s-tests')">Back to Courses</button>
       </div>
     </div>
   `;
 }
 
-// ── Exam ──────────────────────────────────────────────────────
-async function loadExam(course) {
-  currentExamCourse = course;
-  document.getElementById("exam-course-select").style.display = "none";
-  document.getElementById("exam-area").style.display = "block";
-  document.getElementById("exam-intro").style.display = "block";
-  document.getElementById("exam-runner").style.display = "none";
-  document.getElementById("exam-result").style.display = "none";
-
-  try {
-    const result = await apiCall({ action: "getExam", course });
-    examQuestions = result.questions || [];
-    document.getElementById("exam-course-title").textContent = course;
-    document.getElementById("exam-q-count").textContent = examQuestions.length > 0
-      ? `${examQuestions.length} questions • ${examQuestions[0].timer || 15} minutes per question`
-      : "No questions published for this course yet.";
-  } catch(e) {
-    document.getElementById("exam-q-count").textContent = "Could not load exam. Please try again.";
-  }
-}
-
-function startExam() {
-  if (examQuestions.length === 0) return;
-  currentQ = 0;
-  answers = {};
-  document.getElementById("exam-intro").style.display = "none";
-  document.getElementById("exam-runner").style.display = "block";
-  renderQuestion();
-  startTimer(parseInt(examQuestions[0].timer || 15) * 60);
-}
-
-function renderQuestion() {
-  const q = examQuestions[currentQ];
-  const total = examQuestions.length;
-  const pct = ((currentQ + 1) / total * 100).toFixed(0);
-
-  document.getElementById("exam-progress-label").textContent = `Question ${currentQ + 1} of ${total}`;
-  document.getElementById("exam-progress-bar").style.width = pct + "%";
-  document.getElementById("q-text").textContent = q.question;
-
-  const opts = [
-    { key: "A", val: q.a }, { key: "B", val: q.b },
-    { key: "C", val: q.c }, { key: "D", val: q.d }
-  ];
-
-  document.getElementById("q-options").innerHTML = opts.map(o => `
-    <button class="option-btn ${answers[currentQ] === o.key ? 'selected' : ''}" onclick="selectAnswer('${o.key}', this)">
-      <span class="option-letter">${o.key}</span>
-      <span>${o.val}</span>
-    </button>
-  `).join("");
-
-  document.getElementById("btn-prev").style.visibility = currentQ === 0 ? "hidden" : "visible";
-  document.getElementById("btn-next").textContent = currentQ === total - 1 ? "Finish Exam" : "Next →";
-}
-
-function selectAnswer(key, btn) {
-  answers[currentQ] = key;
-  document.querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
-  btn.classList.add("selected");
-}
-
-function nextQ() {
-  if (currentQ === examQuestions.length - 1) {
-    finishExam();
-  } else {
-    currentQ++;
-    renderQuestion();
-  }
-}
-
-function prevQ() {
-  if (currentQ > 0) { currentQ--; renderQuestion(); }
-}
-
-function finishExam() {
-  clearInterval(timerInterval);
-  let correct = 0;
-  examQuestions.forEach((q, i) => {
-    if (answers[i] === q.correct) correct++;
-  });
-  const score = ((correct / examQuestions.length) * 100).toFixed(0);
-
-  document.getElementById("exam-runner").style.display = "none";
-  document.getElementById("exam-result").style.display = "block";
-  document.getElementById("result-score").textContent = score + "%";
-  document.getElementById("result-heading").textContent = parseInt(score) >= 60 ? "Congratulations!" : "Keep Practicing!";
-  document.getElementById("result-detail").textContent =
-    `You answered ${correct} out of ${examQuestions.length} questions correctly. Score: ${score}%`;
-}
-
-function startTimer(seconds) {
-  timerSecondsLeft = seconds;
-  clearInterval(timerInterval);
-  updateTimerDisplay();
-  timerInterval = setInterval(() => {
-    timerSecondsLeft--;
-    updateTimerDisplay();
-    if (timerSecondsLeft <= 60) document.getElementById("exam-timer").classList.add("warning");
-    if (timerSecondsLeft <= 0) finishExam();
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(timerSecondsLeft / 60).toString().padStart(2, "0");
-  const s = (timerSecondsLeft % 60).toString().padStart(2, "0");
-  document.getElementById("exam-timer").textContent = `${m}:${s}`;
-}
-
-function exitExam() {
-  clearInterval(timerInterval);
-  document.getElementById("exam-area").style.display = "none";
-  document.getElementById("exam-course-select").style.display = "grid";
-}
-
-// ── Notes ─────────────────────────────────────────────────────
-let allNotes = [];
-
-async function loadNotes() {
-  // Notes are fetched via marks API - for now, show a placeholder
-  // In a real scenario you'd add a getNotes action to your GAS
-  allNotes = [];
-  renderNotes("all");
-
-  // Try to fetch notes if API supports it
-  try {
-    const result = await apiCall({ action: "getNotes" });
-    if (result.success && result.data) {
-      allNotes = result.data;
-      renderNotes("all");
-    }
-  } catch(e) { /* Notes API not yet implemented — will show empty state */ }
-}
-
-function renderNotes(filter) {
-  const grid = document.getElementById("notes-grid");
-  const filtered = filter === "all" ? allNotes : allNotes.filter(n => n.course.includes(filter));
-
-  if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column:1/-1; text-align:center; padding: 3rem; color: var(--text-muted);">
-        <div style="font-size: 2rem; margin-bottom: 1rem;">📄</div>
-        <p>No lecture notes have been uploaded yet.</p>
-        <p style="font-size:0.8rem; margin-top:0.5rem;">Check back later or contact your instructor.</p>
-      </div>`;
-    return;
-  }
-
-  grid.innerHTML = filtered.map(n => `
-    <div class="note-card">
-      <span class="note-course-badge">${COURSE_SHORT[n.course] || n.course}</span>
-      <div class="note-title">${n.title}</div>
-      <a class="note-download-btn" href="${n.url}" target="_blank" rel="noopener">Download →</a>
+// ── LECTURE NOTES ──────────────────────────────────────────
+async function renderStudentNotes(main) {
+  main.innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Lecture Notes</div>
+      <div class="section-sub">Download course materials</div></div>
     </div>
-  `).join("");
+    <div class="course-select-grid">
+      ${CONFIG.COURSES.map(c => `
+        <div class="course-card" onclick="loadNotes('${c.id}', '${escHtml(c.sheetTab)}', this)">
+          <div class="c-code">${escHtml(c.code)}</div>
+          <div class="c-name">${escHtml(c.name)}</div>
+        </div>
+      `).join("")}
+      <div class="course-card" onclick="loadNotes('all', 'all', this)">
+        <div class="c-code">ALL</div>
+        <div class="c-name">All Courses</div>
+      </div>
+    </div>
+    <div id="notes-content"></div>
+  `;
 }
 
-function filterNotes(filter, btn) {
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  renderNotes(filter);
-}
+async function loadNotes(courseId, sheetTab, el) {
+  document.querySelectorAll(".course-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
 
-// ── Complaint Section ─────────────────────────────────────────
-function loadComplaintSection() {
-  const container = document.getElementById("complaint-list");
-  if (allMarks.length === 0) {
-    container.innerHTML = '<div class="loading-placeholder">No marks published yet. Nothing to review.</div>';
+  const container = document.getElementById("notes-content");
+  container.innerHTML = `<p style="color:var(--text-2)">Loading notes…</p>`;
+
+  let notes = [];
+  if (Sheets._useMock()) {
+    notes = courseId === "all"
+      ? Sheets.MOCK.notes
+      : Sheets.MOCK.notes.filter(n => n.courseName === sheetTab || n.courseName.includes(courseId));
+  } else {
+    notes = courseId === "all"
+      ? await Sheets.getAllNotes()
+      : await Sheets.getLectureNotes(sheetTab);
+  }
+
+  if (!notes.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📚</div><div class="empty-text">No notes available yet.</div></div>`;
     return;
   }
 
-  const existingComplaints = getComplaints().filter(c => c.studentId === currentUser.id);
-
-  container.innerHTML = allMarks.map(m => {
-    const existing = existingComplaints.find(c => c.course === m.subject);
-    const statusHtml = existing
-      ? `<span class="status-badge status-${existing.status}">${existing.status.charAt(0).toUpperCase() + existing.status.slice(1)}</span>`
-      : "";
-    const actionsHtml = !existing ? `
-      <button class="btn-accept" onclick="acceptGrade('${m.subject}')">✔ Accept Grade</button>
-      <button class="btn-reject" onclick="openComplaint('${m.subject}', '${m.grade}', '${m.total}')">✗ Reject & Complain</button>
-    ` : `<span style="font-size:0.85rem; color:var(--text-muted);">Complaint ${existing.status}${existing.status === 'pending' ? ' — awaiting instructor review' : '.'}</span>`;
-
-    return `
-      <div class="complaint-card">
-        <div class="complaint-course">${m.subject} ${statusHtml}</div>
-        <div class="complaint-meta">
-          Score: <strong>${m.total}/100</strong> &nbsp;|&nbsp; Grade: <strong style="color:${gradeColor(m.grade)}">${m.grade}</strong>
-          &nbsp;|&nbsp; Quiz: ${m.quiz} &nbsp;|&nbsp; Mid: ${m.mid} &nbsp;|&nbsp; Assignment: ${m.assignment} &nbsp;|&nbsp; Final: ${m.final}
+  container.innerHTML = `
+    <div class="notes-grid">
+      ${notes.map(n => `
+        <div class="note-card">
+          <div class="note-course">${escHtml(n.courseName || "")}</div>
+          <div class="note-title">${escHtml(n.topicTitle)}</div>
+          <a class="note-download" href="${escHtml(n.resourceURL)}" target="_blank" rel="noopener">
+            ↓ Download / View
+          </a>
         </div>
-        <div class="complaint-actions">${actionsHtml}</div>
+      `).join("")}
+    </div>
+  `;
+}
+
+// ── CHATBOT ────────────────────────────────────────────────
+function renderStudentChatbot(main) {
+  main.innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">AI Study Assistant</div>
+      <div class="section-sub">Ask questions about your courses</div></div>
+    </div>
+    <div style="max-width:680px">
+      <div class="chat-window" id="chat-window">
+        <div class="chat-msg">
+          <div class="chat-avatar">🤖</div>
+          <div class="chat-bubble">Hello ${escHtml(_studentData.name.split(" ")[0])}! I'm your study assistant. Ask me anything about Civil Engineering, your courses, or use the suggestions below.</div>
+        </div>
       </div>
-    `;
-  }).join("");
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        ${["What is a sag curve?","Explain trip generation","What is stopping sight distance?","Gravity model in transport"].map(s=>`
+          <button class="btn btn-outline btn-sm" onclick="sendChat('${escHtml(s)}')">${escHtml(s)}</button>
+        `).join("")}
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" placeholder="Ask a question…"
+          onkeydown="if(event.key==='Enter')sendChat()"/>
+        <button class="btn btn-accent" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  `;
 }
 
-function acceptGrade(course) {
-  updateComplaintStatus(-1, "accepted"); // No real complaint needed
-  // Mark locally as accepted
-  const existing = getComplaints();
-  existing.push({
-    id: Date.now(), studentId: currentUser.id, course,
-    status: "accepted", submittedAt: new Date().toISOString(), complaintText: ""
-  });
-  localStorage.setItem("au_complaints", JSON.stringify(existing));
-  loadComplaintSection();
-}
-
-let complaintContext = {};
-
-function openComplaint(course, grade, total) {
-  complaintContext = { course, grade, total };
-  document.getElementById("complaint-modal-course").textContent = `Course: ${course} | Grade: ${grade} | Total: ${total}`;
-  document.getElementById("complaint-modal").style.display = "flex";
-}
-
-function submitComplaint() {
-  const text = document.getElementById("complaint-text").value.trim();
-  if (!text) { alert("Please describe your complaint."); return; }
-  saveComplaint(complaintContext.course, text, complaintContext.grade, complaintContext.total);
-  document.getElementById("complaint-modal").style.display = "none";
-  document.getElementById("complaint-text").value = "";
-  loadComplaintSection();
-}
-
-// ── Chatbot ───────────────────────────────────────────────────
-async function sendChat() {
+async function sendChat(prefill) {
   const input = document.getElementById("chat-input");
-  const msg = input.value.trim();
+  const msg   = prefill || input.value.trim();
   if (!msg) return;
-
   input.value = "";
-  appendChatMsg(msg, "user");
-  appendChatMsg("Thinking…", "bot", true);
+
+  appendChat(msg, "user");
+
+  // Typing indicator
+  const typingId = appendChat("…", "bot", true);
 
   try {
-    const response = await fetch(CONFIG.API_URL, {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 500,
-        system: `You are an academic assistant for Ambo University, Faculty of Engineering (Civil Engineering department). You help students with questions about their courses: Geometric Design of Road and Streets (CEng 3201) and Transport Planning and Modeling (CEng 2901). Keep answers concise and academic. If asked about marks or specific data you don't have, tell the student to use the portal features. Current student: ${currentUser.name || currentUser.id}.`,
-        messages: [{ role: "user", content: msg }]
-      })
+        max_tokens: 400,
+        system: `You are a helpful study assistant for Civil Engineering students at an Ethiopian university.
+The student is studying these courses: 
+1. Geometric Design of Road and Streets (CEng 3201)
+2. Transport Planning and Modeling (CEng 2901)
+Give concise, accurate academic answers. If asked non-academic questions, politely redirect to studies.`,
+        messages: [{ role: "user", content: msg }],
+      }),
     });
-
-    // Try Claude API first, fall back to App Script AI
-    let reply = "";
-    if (response.ok) {
-      const data = await response.json();
-      if (data.content) {
-        reply = data.content.map(c => c.text || "").join("");
-      }
-    }
-
-    if (!reply) {
-      // Fall back to the GAS conversational handler
-      const gasResult = await apiCall({ message: { text: msg, chat: { id: 0 }, from: { username: "" } } });
-      reply = "I'm here to help! For detailed academic queries, please use the portal features or contact your instructor.";
-    }
-
-    removeTyping();
-    appendChatMsg(reply, "bot");
-  } catch(e) {
-    removeTyping();
-    appendChatMsg("I'm unable to respond right now. Please try again later or contact your instructor directly.", "bot");
+    const data = await resp.json();
+    const reply = data.content?.[0]?.text || "Sorry, I could not get a response.";
+    removeTyping(typingId);
+    appendChat(reply, "bot");
+  } catch (e) {
+    removeTyping(typingId);
+    appendChat("Sorry, I couldn't connect. Please try again.", "bot");
   }
 }
 
-function appendChatMsg(text, role, isTyping = false) {
-  const messages = document.getElementById("chat-messages");
+function appendChat(text, role, isTyping) {
+  const win = document.getElementById("chat-window");
+  const id  = "msg-" + Date.now();
   const div = document.createElement("div");
-  div.className = `chat-msg ${role}`;
-  if (isTyping) div.id = "typing-indicator";
-  div.innerHTML = `<div class="msg-bubble">${text}</div>`;
-  messages.appendChild(div);
-  messages.scrollTop = messages.scrollHeight;
+  div.className = "chat-msg" + (role === "user" ? " user" : "");
+  div.id = id;
+  div.innerHTML = role === "user"
+    ? `<div class="chat-avatar" style="background:rgba(0,212,170,0.15)">👤</div><div class="chat-bubble">${escHtml(text)}</div>`
+    : `<div class="chat-avatar">🤖</div><div class="chat-bubble">${escHtml(text)}</div>`;
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+  return id;
 }
 
-function removeTyping() {
-  const el = document.getElementById("typing-indicator");
+function removeTyping(id) {
+  const el = document.getElementById(id);
   if (el) el.remove();
+}
+
+// ── NOTICES ────────────────────────────────────────────────
+async function renderStudentNotices(main) {
+  main.innerHTML = `
+    <div class="section-header">
+      <div><div class="section-title">Notices</div>
+      <div class="section-sub">Announcements from your instructor</div></div>
+    </div>
+    <div id="notices-list"><p style="color:var(--text-2)">Loading…</p></div>
+  `;
+
+  let notices = [];
+  if (Sheets._useMock()) {
+    notices = Sheets.MOCK.notices;
+  } else {
+    notices = await Sheets.getNotices();
+  }
+
+  const list = document.getElementById("notices-list");
+  if (!notices.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📣</div><div class="empty-text">No notices yet.</div></div>`;
+    return;
+  }
+
+  list.innerHTML = notices.slice().reverse().map(n => `
+    <div class="notice-item">
+      <div class="notice-title">${escHtml(n.title)}</div>
+      <div class="notice-body">${escHtml(n.body)}</div>
+      <div class="notice-meta">${escHtml(n.date || "")} · ${escHtml(n.author || "Instructor")}</div>
+    </div>
+  `).join("");
+}
+
+// ── UTILITY ────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
