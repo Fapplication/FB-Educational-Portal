@@ -1,153 +1,137 @@
-# EduPortal – Civil Engineering Student Management System
+# Ambo University — Educational Web Portal
 
-A fully responsive, dynamic web portal for students and instructors at the Civil Engineering Department.
-
----
-
-## Features
-
-### Student Portal
-- ✅ Register with pre-authorized student ID
-- ✅ Secure login / session persistence
-- ✅ View marks per course (Quiz, Mid, Assignment, Final)
-- ✅ Accept marks or file complaints with written justification
-- ✅ Take online multiple-choice tests per course
-- ✅ Download / view lecture notes per course
-- ✅ AI Study Chatbot (powered by Claude)
-- ✅ View instructor notices
-
-### Instructor Portal
-- ✅ Secure admin login
-- ✅ Dashboard with summary statistics
-- ✅ View & edit marks per course (inline editing + save)
-- ✅ Add students to course mark sheets
-- ✅ Review and respond to student complaints
-- ✅ Upload exam questions (MCQ)
-- ✅ Upload lecture notes with resource URLs
-- ✅ Send/delete notices to students
-- ✅ View all registered students
+A complete student and instructor web portal for the Civil Engineering Department at Ambo University. Built to work with the existing Google Apps Script (GAS) backend and Telegram Bot.
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-student-portal/
-├── index.html          ← Main HTML entry point
+ambo-portal/
+├── index.html              ← Login / Register page
+├── pages/
+│   ├── student.html        ← Student dashboard
+│   └── admin.html          ← Instructor/Admin dashboard
 ├── css/
-│   └── main.css        ← Full responsive stylesheet
+│   └── main.css            ← Shared stylesheet
 ├── js/
-│   ├── config.js       ← ⚙️  CONFIGURE THIS FIRST
-│   ├── sheets.js       ← Google Sheets API layer
-│   ├── auth.js         ← Login & registration logic
-│   ├── student.js      ← Student dashboard sections
-│   ├── instructor.js   ← Instructor dashboard sections
-│   └── app.js          ← App shell, routing, helpers
-└── Code.gs             ← Google Apps Script backend
+│   ├── config.js           ← API URL + shared utilities
+│   ├── auth.js             ← Login, register logic
+│   ├── student.js          ← Student dashboard logic
+│   └── admin.js            ← Admin dashboard logic
+├── logo.png                ← University logo (YOU provide this)
+└── README.md               ← This file
 ```
 
 ---
 
-## Setup Guide
+## 🚀 Deployment to GitHub Pages
 
-### Step 1 – Set up Google Sheets
+### Step 1 — Upload files
+1. Create a new GitHub repository (e.g. `ambo-portal`)
+2. Upload all files maintaining the directory structure above
+3. Place your university logo as `logo.png` in the root folder
 
-Your sheet should have these tabs (they already exist in your description):
-- `Authorized_IDs` — columns: `ID`, `Name`
-- `Users` — columns: `ID`, `Password`, `Name`, `Telegram_Username`
-- `Lecture_Notes` — columns: `Course_Name`, `Topic_Title`, `Resource_URL`
-- `Online_Tests` — columns: `Course_Name`, `Question_Text`, `Option_A`, `Option_B`, `Option_C`, `Option_D`, `Correct_Answer`
-- `OTP_Verification`, `Bot_Sessions` (existing)
-- `Geometric Design of Road and Streets (CEng 3201)` — columns: `StudentID`, `Name`, `Quiz`, `Mid`, `Assignment`, `Final`
-- `Transport Planning and Modeling (CEng 2901)` — same columns
+### Step 2 — Enable GitHub Pages
+1. Go to your repository → **Settings** → **Pages**
+2. Under "Source" select **Deploy from a branch**
+3. Choose `main` branch, `/ (root)` folder
+4. Click **Save**
+5. Your portal will be live at: `https://YOUR_USERNAME.github.io/ambo-portal/`
 
-**Add two new tabs:**
-- `Notices` — columns: `Title`, `Body`, `Date`, `Author`
-- `Complaints` — columns: `StudentID`, `StudentName`, `CourseID`, `CourseName`, `Subject`, `Body`, `CurrentMark`, `Date`, `Status`, `Response`
-
-### Step 2 – Deploy Google Apps Script
-
-1. Open your Google Sheet
-2. Click **Extensions → Apps Script**
-3. Delete any existing code, then paste the entire contents of `Code.gs`
-4. Click **Deploy → New Deployment**
-5. Type: **Web App**
-6. Execute as: **Me**
-7. Who has access: **Anyone** (needed for the website to call it)
-8. Click **Deploy** → copy the **Web App URL**
-
-### Step 3 – Configure js/config.js
-
-Open `js/config.js` and replace:
+### Step 3 — Update the API URL
+Open `js/config.js` and replace the `API_URL` value with your deployed GAS Web App URL:
 
 ```javascript
-APPS_SCRIPT_URL: "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
-SPREADSHEET_ID:  "YOUR_SPREADSHEET_ID",
-ADMIN_USER:      "admin",        // change to your username
-ADMIN_PASS:      "admin123",     // change to a strong password
-ADMIN_NAME:      "Dr. Instructor", // your name
+const CONFIG = {
+  API_URL: "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
+  ...
+};
 ```
 
-Your Spreadsheet ID is the long string in your sheet's URL:
-`https://docs.google.com/spreadsheets/d/**THIS_PART**/edit`
+---
 
-### Step 4 – Upload to GitHub Pages
+## ✅ Features
 
-1. Create a new GitHub repository (e.g. `edu-portal`)
-2. Upload all files maintaining the folder structure:
-   ```
-   index.html
-   css/main.css
-   js/config.js
-   js/sheets.js
-   js/auth.js
-   js/student.js
-   js/instructor.js
-   js/app.js
-   ```
-   (Do NOT upload `Code.gs` — it goes in Apps Script, not GitHub)
-3. Go to **Settings → Pages**
-4. Source: **Deploy from a branch** → `main` → `/ (root)`
-5. Your site will be at: `https://yourusername.github.io/edu-portal/`
+### Student Portal
+- 🔐 Login / Register / Forgot Password
+- 📊 View marks with visual progress bars (Quiz, Mid, Assignment, Final)
+- 📋 Accept or reject published grades with complaint submission
+- ✎ Online multiple-choice examinations with timer
+- 📄 Download lecture notes and resources
+- 🤖 AI Academic Assistant chatbot
+- 📱 Fully responsive (mobile + desktop)
+
+### Instructor/Admin Portal
+- 📝 Publish and update student marks (with live total/grade preview)
+- 📊 Bulk marks grid overview per course
+- 👥 Student enrollment grid
+- 📤 Upload lecture notes with course assignments
+- 🎯 Add MCQ exam questions to the question pool
+- 📢 Send announcements and notices
+- ⚑ Review and resolve student grade complaints
 
 ---
 
-## Demo Mode (No Setup Required)
+## ⚙️ Optional: Enable Web Grid View
 
-If you haven't set up the Apps Script yet, the site automatically runs in **mock/demo mode** with sample data:
-- Student ID: `ETS0001` | Password: `pass123`
-- Instructor: username `admin` | password `admin123`
+To enable the full student grid on the web portal, add this to your Google Apps Script:
+
+**In the `doPost` function, add:**
+```javascript
+else if (action === "getGrid") res = getGridForCourse(req.subject, req.adminId, req.adminPassword);
+```
+
+**Add this new function:**
+```javascript
+function getGridForCourse(subject, adminId, adminPassword) {
+  if (adminId !== "admin" || adminPassword !== "admin123") return { success: false, message: "Unauthorized." };
+  const sheet = SPREADSHEET.getSheetByName(subject);
+  if (!sheet) return { success: false, message: "Sheet not found." };
+  const rows = sheet.getDataRange().getValues();
+  const data = [];
+  for (let i = 1; i < rows.length; i++) {
+    const tot = (parseFloat(rows[i][1])||0) + (parseFloat(rows[i][2])||0) + (parseFloat(rows[i][3])||0) + (parseFloat(rows[i][4])||0);
+    data.push({ id: rows[i][0], quiz: rows[i][1], mid: rows[i][2], assignment: rows[i][3], final: rows[i][4], total: tot.toFixed(2), grade: gradeOf(tot) });
+  }
+  return { success: true, data };
+}
+```
+
+**Also add a getNotes action:**
+```javascript
+else if (action === "getNotes") res = getAllNotes(req.adminId, req.adminPassword);
+```
+
+```javascript
+function getAllNotes(adminId, adminPassword) {
+  if (adminId !== "admin" || adminPassword !== "admin123") return { success: false };
+  const sheet = SPREADSHEET.getSheetByName("Lecture_Notes");
+  if (!sheet) return { success: true, data: [] };
+  const rows = sheet.getDataRange().getValues();
+  const data = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0]) data.push({ course: rows[i][0], title: rows[i][1], url: rows[i][2] });
+  }
+  return { success: true, data };
+}
+```
+
+After adding these functions, redeploy your GAS as a new version.
 
 ---
 
-## AI Chatbot
+## 🔒 Security Notes
 
-The chatbot uses **Claude claude-sonnet-4-20250514** via the Anthropic API. To enable it:
-1. The API call is made from the browser — you need to handle CORS appropriately
-2. For production, proxy the API call through your Apps Script to keep API keys server-side
-3. See the `sendChat()` function in `js/student.js` to configure
-
----
-
-## Customization
-
-- **Add more courses:** Edit the `COURSES` array in `js/config.js`
-- **Change color theme:** Edit CSS variables in `css/main.css` (`:root` block)
-- **Change marks columns/weights:** Update `markItem()` in `js/student.js`
-- **Change instructor password:** Update `ADMIN_PASS` in `js/config.js`
+- Admin credentials are defined in `js/config.js` — for production, consider moving to server-side validation
+- Student sessions are stored in `sessionStorage` (cleared when browser closes)
+- Complaint data is stored in `localStorage` (browser-local, not synced to GAS)
+- CORS headers are handled by your GAS `doOptions` function
 
 ---
 
-## Technology Stack
+## 📞 Support
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Vanilla HTML/CSS/JS (no frameworks) |
-| Styling | Custom CSS with CSS Variables |
-| Database | Google Sheets via Apps Script |
-| AI Chatbot | Anthropic Claude API |
-| Hosting | GitHub Pages (free) |
+This portal communicates with the same Google Apps Script backend as the Telegram Bot. Both can be used simultaneously — the GAS backend handles all data operations.
 
----
-
-*Built for the Civil Engineering Department. Responsive on mobile and desktop.*
+For issues, contact the system administrator or refer to the Google Apps Script deployment logs.
