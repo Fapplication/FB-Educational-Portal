@@ -1,117 +1,78 @@
 // ============================================================
-// AMBO UNIVERSITY PORTAL — Configuration
-// ============================================================
-// IMPORTANT: Replace the API_URL below with your deployed
-// Google Apps Script Web App URL after deployment.
+//  js/config.js  –  EduPortal Configuration
+//  ➜ EDIT THIS FILE with your own credentials
 // ============================================================
 
 const CONFIG = {
-  API_URL: "https://script.google.com/macros/s/AKfycbz_K5-DaTGGY98NJ5TVkg5bDxg8llRdYJYUpGnYfQoa_D8hUIhdVMXBi0gZ7RMWWyty/exec",
-  ADMIN_ID: "admin",
-  ADMIN_PASSWORD: "admin123"
+
+  // ── GOOGLE SHEETS ──────────────────────────────────────────
+  // 1. Publish your sheet: File → Share → Publish to web (entire doc, CSV)
+  // 2. Deploy as Web App via Apps Script (see README)
+  // 3. Paste your deployment URL below
+
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxag3kbACfwOiA7zc4pEHY-euD0lZ9E2sv0RmzAqWxajxzw2xPzPE5ZPTdDcJPhkPrT/exec)",
+  // ^ Replace YOUR_DEPLOYMENT_ID with your actual Apps Script Web App URL
+
+  SPREADSHEET_ID: "YOUR_SPREADSHEET_ID",
+  // ^ The ID in your Google Sheet URL:
+  //   https://docs.google.com/spreadsheets/d/THIS_PART/edit
+
+  // ── INSTRUCTOR CREDENTIALS ─────────────────────────────────
+  // These should be stored in your Google Sheet → Users tab
+  // with a special admin flag. Fallback hardcoded here for demo.
+  ADMIN_USER: "admin",
+  ADMIN_PASS: "admin123",
+  ADMIN_NAME: "Dr. Instructor",
+
+  // ── SHEET TAB NAMES ────────────────────────────────────────
+  SHEETS: {
+    AUTHORIZED_IDS:   "Authorized_IDs",
+    OTP_VERIFICATION: "OTP_Verification",
+    USERS:            "Users",
+    LECTURE_NOTES:    "Lecture_Notes",
+    ONLINE_TESTS:     "Online_Tests",
+    BOT_SESSIONS:     "Bot_Sessions",
+    NOTICES:          "Notices",              // add this tab to your sheet
+    COMPLAINTS:       "Complaints",           // add this tab to your sheet
+    COURSE_1:         "Geometric Design of Road and Streets (CEng 3201)",
+    COURSE_2:         "Transport Planning and Modeling (CEng 2901)",
+  },
+
+  // ── COURSE DEFINITIONS ─────────────────────────────────────
+  COURSES: [
+    {
+      id: "CEng3201",
+      code: "CEng 3201",
+      name: "Geometric Design of Road and Streets",
+      sheetTab: "Geometric Design of Road and Streets (CEng 3201)",
+    },
+    {
+      id: "CEng2901",
+      code: "CEng 2901",
+      name: "Transport Planning and Modeling",
+      sheetTab: "Transport Planning and Modeling (CEng 2901)",
+    },
+  ],
+
+  // ── APP SETTINGS ───────────────────────────────────────────
+  APP_NAME: "EduPortal",
+  DEPT_NAME: "Civil Engineering Department",
+  VERSION: "1.0.0",
 };
 
-// ── Shared API caller ────────────────────────────────────────
-async function apiCall(payload) {
-  const res = await fetch(CONFIG.API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  return await res.json();
-}
-
-// ── Session helpers ──────────────────────────────────────────
-function saveUser(data) {
-  sessionStorage.setItem("au_user", JSON.stringify(data));
-}
-
-function getUser() {
-  try { return JSON.parse(sessionStorage.getItem("au_user")); }
-  catch(e) { return null; }
-}
-
-function clearUser() {
-  sessionStorage.removeItem("au_user");
-}
-
-// ── Grade helper ─────────────────────────────────────────────
-function gradeOf(total) {
-  if (total >= 90) return "A";
-  if (total >= 80) return "B";
-  if (total >= 70) return "C";
-  if (total >= 60) return "D";
-  return "F";
-}
-
-function gradeColor(grade) {
-  const map = { A: "#276749", B: "#2B6CB0", C: "#744210", D: "#975A16", F: "#C53030" };
-  return map[grade] || "#4A5568";
-}
-
-// ── Complaint storage (local — no backend change needed) ─────
-function saveComplaint(courseId, text, grade, total) {
-  const existing = getComplaints();
-  const user = getUser();
-  existing.push({
-    id: Date.now(),
-    studentId: user ? user.id : "",
-    course: courseId,
-    grade,
-    total,
-    complaintText: text,
-    status: "pending",
-    submittedAt: new Date().toISOString()
-  });
-  localStorage.setItem("au_complaints", JSON.stringify(existing));
-}
-
-function getComplaints() {
-  try { return JSON.parse(localStorage.getItem("au_complaints")) || []; }
-  catch(e) { return []; }
-}
-
-function updateComplaintStatus(id, status) {
-  const all = getComplaints();
-  const idx = all.findIndex(c => c.id === id);
-  if (idx !== -1) { all[idx].status = status; localStorage.setItem("au_complaints", JSON.stringify(all)); }
-}
-
-// ── Notification store ────────────────────────────────────────
-function saveNotification(title, body, course) {
-  const existing = getNotifications();
-  existing.unshift({ id: Date.now(), title, body, course, sentAt: new Date().toISOString() });
-  localStorage.setItem("au_notifications", JSON.stringify(existing.slice(0, 50)));
-}
-
-function getNotifications() {
-  try { return JSON.parse(localStorage.getItem("au_notifications")) || []; }
-  catch(e) { return []; }
-}
-
-// ── Toggle sidebar (mobile) ──────────────────────────────────
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
-}
-
-// ── Toggle password visibility ───────────────────────────────
-function togglePwd(inputId, btn) {
-  const input = document.getElementById(inputId);
-  if (input.type === "password") { input.type = "text"; btn.textContent = "🙈"; }
-  else { input.type = "password"; btn.textContent = "👁"; }
-}
-
-// ── Generic modal close ──────────────────────────────────────
-function closeModal(id) {
-  document.getElementById(id).style.display = "none";
-}
-
-// ── doLogout ─────────────────────────────────────────────────
-function doLogout() {
-  clearUser();
-  window.location.href = isInPages() ? "../index.html" : "index.html";
-}
-
-function isInPages() {
-  return window.location.pathname.includes("/pages/");
-}
+// ── SESSION HELPERS ────────────────────────────────────────
+const Session = {
+  set(key, val) { localStorage.setItem("edu_" + key, JSON.stringify(val)); },
+  get(key)      { try { return JSON.parse(localStorage.getItem("edu_" + key)); } catch { return null; } },
+  clear()       { Object.keys(localStorage).filter(k=>k.startsWith("edu_")).forEach(k=>localStorage.removeItem(k)); },
+  student: {
+    set(data) { Session.set("student", data); },
+    get()     { return Session.get("student"); },
+    clear()   { localStorage.removeItem("edu_student"); },
+  },
+  instructor: {
+    set(data) { Session.set("instructor", data); },
+    get()     { return Session.get("instructor"); },
+    clear()   { localStorage.removeItem("edu_instructor"); },
+  },
+};
